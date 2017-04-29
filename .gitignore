@@ -1,2 +1,21 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+# vim swap and backup files
 *.un~
 *.swap
+
+# windows executable
+*.exe
+
+# cached folder
+nimcache/
+
+# built folder if available
+/build

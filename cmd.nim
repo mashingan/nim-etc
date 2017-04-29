@@ -1,5 +1,5 @@
 import terminal
-import strutils
+from strutils import NewLines
 
 proc getpasswd*(prompt: string, strlen = 30, outh = stdout): string =
   ## Shadow the input from command line console after printing the prompt
