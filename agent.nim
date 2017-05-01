@@ -5,7 +5,7 @@
 ## The threadpool module is exported so it's not necessarily to import it
 ## anymore.
 ## Compile to run it with:
-## $ nim c -r --threads:on
+## $ nim c -r --threads:on agent
 import threadpool
 export threadpool
 
@@ -16,15 +16,27 @@ type
   PAgent*[T] = ptr Agent[T]
 
 proc send*[T](agent: PAgent[T], exec: AgentProc[T]): T =
+  ## Executing the closure ``exec`` to ``agent`` itself. The mutation or
+  ## any value changing operation done within the closure.
   exec agent
 
 template `<-`*[T](agent: var Agent[T], exec: AgentProc[T]): untyped =
+  ## ``send`` asynchronously with closure.
   spawn send(agent.addr, exec)
 
-proc `@`*[T](agent: var Agent[T]): T =
+template `<-`*[T](agent: var Agent[T], value: T): untyped =
+  ## ``send`` asynchronously with immediate ``value``.
+  spawn send(agent.addr, proc(x: PAgent[T]): T =
+    x.value = value
+    value)
+
+proc `@`*[T](agent: var Agent[T]): var T =
+  ## Setter and getter for agent value since the value field cannot be
+  ## accessed directly.
   agent.value
 
 proc makeAgent*[T](value: T): Agent[T] =
+  ## Agent constructor.
   Agent[T](value: value)
 
 when isMainModule:
@@ -38,8 +50,8 @@ when isMainModule:
   let v = agent <- proc (x: PAgent[int]):int =
     echo "sleep it first for 2 seconds before increment"
     sleep 2000
-    inc x.value
-    x.value
+    inc @(x[])
+    @(x[])
 
   echo "During spawning: ", @agent
   echo "is FlowVar ready? ", v.isReady
