@@ -13,6 +13,8 @@
 
 # windows executable
 *.exe
+*.ilk
+*.pdb
 
 # cached folder
 nimcache/
