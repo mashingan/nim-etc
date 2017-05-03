@@ -20,4 +20,4 @@
 nimcache/
 
 # built folder if available
-/build
+build/

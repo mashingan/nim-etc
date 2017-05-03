@@ -1,22 +1,34 @@
 ## sharedseq to be used for inter-thread seq like operation
 ## Every usage of sharedseq should make a call for ``freeColl`` to release
 ## the memory allocation to which scope it resides.
-## Also make sure to use lock or guard to prevent data-races.
+##
+## Also make sure to use lock or guard to prevent data-races. (outdated)
+##
 ## In later version, the guard would be provided within collection
 ## so it could seamlessly used as if it's seq. (Implemented)
-## But, the allocation still should manually released.
+##
+## But, the allocation still should be manually released.
+##
 ## To run this module independently, compile with:
 ## $ nim c -r --threads:on sharedseq
 
 import locks
+#TODO: For ref type element deletion
+#import typeinfo
 
 type
   Coll*[T] = object
-    coll {.guard: lock.}: ptr T
-    size: int
-    lock: Lock
+    ## Box for linear position value in memory. The representation of
+    ## linear position is a pointer of given type. It has its own guard/lock
+    ## to ensure avoiding race-condition.
+    ## The pointer object is created with ``create`` instead of ``createShared``
+    ## so make sure the object lifetime longer than its ``coll`` field.
+    coll {.guard: lock.}: ptr T   ## Consecutive array pointer of
+                                  ## given type in memory.
+    size: int                     ## Size the collection.
+    lock: Lock                    ## Guard for ``coll`` field.
 
-  PColl*[T] = ptr Coll[T]
+  PColl*[T] = ptr Coll[T]         ## Pointer representation of ``Coll``
 
 template guardedWith[T](coll: PColl[T], body: untyped) =
   {.locks: [coll.lock].}:
@@ -86,10 +98,11 @@ proc inc*[T](p: var ptr T) {.discardable.} =
 
 proc contains*[T](p: ptr T, x: T): bool =
   ## Check whether ``x`` in ``p``. Can be used with ``in`` expression
-  ## ```nim
+  ##
+  ## .. code-block:: nim
   ##  if x in coll:
   ##    echo $x
-  ## ```
+  ##
   var temp = p
   for i in 0..<p.len:
     if x == temp[]:
@@ -106,12 +119,41 @@ proc contains*[T](p: PColl[T], val: T): bool =
         result = true
         break
 
+#[
+template kindof[T](x: var T, whatKind: AnyKind) =
+  ## To get what kind of ``x`` type. To find whether ``x`` is value or
+  ## reference type.
+  whatKind = toAny[T](x).kind
+  cast[T](x)
+]#
+
+proc delete*(p: var PColl){.discardable.} = p.freeCol
+
 proc delete*(p: var PColl, idx: int){.discardable.} =
   ## Delete the value at index position and move all the subsequent values
   ## to fill its respective previous position. O(n)
+
   if idx > p.size:
     return
-  var temp: ptr type(p[0])
+
+  # TODO: Implement for checking whether it's value type or reference type
+  # To delete the element that some kind of user defined object which
+  # created with some memory allocation, user need to define ``delete``
+  # operation to its object in order to free the memory.
+
+  #[
+  #TODO: Finish individual reference type element deletion
+  var
+    thekind: AnyKind
+    tempvar = p[0]
+  kindof tempvar, theKind
+
+  let isBasicObj: bool = case theKind
+    of akObject, akPtr, akProc, akCstring: false
+    else: true
+  ]#
+
+  var temp: ptr p[0].type
   guardedWith p:
     temp = p.coll + idx + 1
     p.coll[idx] = temp[]
