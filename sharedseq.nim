@@ -3,22 +3,30 @@
 ## the memory allocation to which scope it resides.
 ## Also make sure to use lock or guard to prevent data-races.
 ## In later version, the guard would be provided within collection
-## so it could seamlessly used as if it's seq.
-## But, the allocation still should manually released
+## so it could seamlessly used as if it's seq. (Implemented)
+## But, the allocation still should manually released.
 ## To run this module independently, compile with:
 ## $ nim c -r --threads:on sharedseq
 
+import locks
+
 type
   Coll*[T] = object
-    coll: ptr T
+    coll {.guard: lock.}: ptr T
     size: int
+    lock: Lock
 
   PColl*[T] = ptr Coll[T]
+
+template guardedWith[T](coll: PColl[T], body: untyped) =
+  {.locks: [coll.lock].}:
+    body
 
 proc newColl*[T](): PColl[T] =
   ## Default constructor with zero arity
   result = create(Coll[T], 1)
-  result.coll = createShared(T, 1)
+  initLock result.lock
+  guardedWith result: result.coll = createShared(T, 1)
   result.size = 0
 
 proc newColl*[T](size = 0, init: T): PColl[T] =
@@ -27,31 +35,37 @@ proc newColl*[T](size = 0, init: T): PColl[T] =
   if size == 0:
     newsize = 1
   result = create(Coll[T], newsize)
-  result.coll = createShared(T, newsize)
-  result.coll[] = init
+  initLock result.lock
+  guardedWith result:
+    result.coll = createShared(T, newsize)
+    result.coll[] = init
   result.size = newsize
 
 proc freeColl*(p: PColl){.discardable.} =
   ## Freeing the allocated shared memory
-  discard p.coll.resizeShared 0
+  guardedWith p:
+    discard p.coll.resizeShared 0
   discard p.resize 0
 
 proc `$`*(p: PColl): string =
   ## Stringify the collection
   result = "["
   for i in 0..<p.size:
-    result &= $p.coll[i]
+    guardedWith p:
+      result &= $p.coll[i]
     if i != p.size - 1:
       result &= ", "
   result &= "]"
 
 proc `[]`*[T](p: PColl[T], off: int): T =
   ## Getting the index value. O(1)
-  p.coll[off]
+  guardedWith p:
+    result = p.coll[off]
 
 proc `[]=`*[T](p: var PColl[T], off: int, val: T) =
   ## Setting the value at index. O(1)
-  p.coll[off] = val
+  guardedWith p:
+    p.coll[off] = val
 
 template `+`[T](p: ptr T, off: int): ptr T =
   cast[ptr p[].type](cast[ByteAddress](p) +% off * p[].sizeof)
@@ -85,32 +99,39 @@ proc contains*[T](p: ptr T, x: T): bool =
 
 proc contains*[T](p: PColl[T], val: T): bool =
   ## Check whether ``val`` in ``p``.
+  result = false
   for i in 0..<p.size:
-    if val == p.coll[i]:
-      return true
-  false
+    guardedWith p:
+      if val == p.coll[i]:
+        result = true
+        break
 
 proc delete*(p: var PColl, idx: int){.discardable.} =
   ## Delete the value at index position and move all the subsequent values
   ## to fill its respective previous position. O(n)
   if idx > p.size:
     return
-  var temp = p.coll + idx + 1
-  p.coll[idx] = temp[]
+  var temp: ptr type(p[0])
+  guardedWith p:
+    temp = p.coll + idx + 1
+    p.coll[idx] = temp[]
   inc temp
   for i in idx+1..<p.size:
     if temp.isNil:
       break
-    p.coll[i] = temp[]
+    guardedWith p:
+      p.coll[i] = temp[]
     inc temp
 
   dec p.size
-  p.coll = resizeShared(p.coll, p.size)
+  guardedWith p:
+    p.coll = resizeShared(p.coll, p.size)
 
 
 proc add*[T](p: var PColl, val: T) {.discardable.} =
   ## Append the ``val`` to ``p``. O(1)
-  p.coll = resizeShared(p.coll, p.size+1)
+  guardedWith p:
+    p.coll = resizeShared(p.coll, p.size+1)
   if p.size == 0:
     p[0] = val
   else:
@@ -134,10 +155,10 @@ when isMainModule:
     cuttingTime = 1000  # in ms
 
   var
-    lock, queue: Lock
+    lock: Lock
     servedCustomers: int
     customers: array[totalCustomer, Thread[Customer]]
-    seatAvailable{.guard: queue.} = newColl[int]()
+    seatAvailable = newColl[int]()
 
   proc newCustomer(id: int): Customer =
     new result
@@ -155,31 +176,27 @@ when isMainModule:
     echo "(c) customer ", num, " finish cutting hair"
 
   template illegableToWait(c: Customer): untyped =
-    {.locks: [queue].}:
-      seatAvailable.len >= 0 and seatAvailable.len < seat and
-        c.id notin seatAvailable and c.notInQueue
+    seatAvailable.len >= 0 and seatAvailable.len < seat and
+      c.id notin seatAvailable and c.notInQueue
 
   template tobeTurnedAway(c: Customer): untyped =
-    {.locks: [queue].}:
-      c.id notin seatAvailable
+    c.id notin seatAvailable
 
   proc serving (cust: Customer) {.thread.} =
 
     echo "(c) customer ", cust.id, " entering shop"
-    {.locks: [queue].}:
-      echo "(s) current queuing: ", seatAvailable
+    echo "(s) current queuing: ", seatAvailable
     while true:
       let barberFree = tryAcquire lock
       if barberFree:
-        {.locks: [queue].}:
-          var turn: int
-          if seatAvailable.len <= seat and seatAvailable.len > 0:
-            turn = seatAvailable[0]
-            seatAvailable.delete 0
-          else:
-            turn = cust.id
-          echo "now seatAvailable before serving: ", seatAvailable
-          servingAction turn
+        var turn: int
+        if seatAvailable.len <= seat and seatAvailable.len > 0:
+          turn = seatAvailable[0]
+          seatAvailable.delete 0
+        else:
+          turn = cust.id
+        echo "now seatAvailable before serving: ", seatAvailable
+        servingAction turn
         release lock
         break
 
@@ -187,15 +204,13 @@ when isMainModule:
         continue
 
       elif cust.illegableToWait:
-        {.locks: [queue].}:
-          echo "(s) seatAvailable: ", seatAvailable
-          echo "(c) customer ", cust.id, " waiting in queue"
-          seatAvailable.add cust.id
-          echo "(c) seatAvailable after queuing: ", seatAvailable
-          cust.inQueue = true
+        echo "(s) seatAvailable: ", seatAvailable
+        echo "(c) customer ", cust.id, " waiting in queue"
+        seatAvailable.add cust.id
+        echo "(c) seatAvailable after queuing: ", seatAvailable
+        cust.inQueue = true
       elif cust.tobeTurnedAway:
-        {.locks: [queue].}:
-          echo "seatAvailable: ", seatAvailable
+        echo "seatAvailable: ", seatAvailable
         echo "(c) turn away customer ", cust.id
         break
 
@@ -203,7 +218,6 @@ when isMainModule:
   randomize()
 
   initLock lock
-  initLock queue
 
   echo "Total customer today will be: ", totalCustomer
   for i in 1..totalCustomer:
@@ -216,5 +230,4 @@ when isMainModule:
   joinThreads(customers)
   echo "Total served customers is ", servedCustomers
 
-  {.locks: [queue].}:
-    seatAvailable.freeColl
+  seatAvailable.freeColl
