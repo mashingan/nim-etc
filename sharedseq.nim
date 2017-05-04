@@ -2,10 +2,10 @@
 ## Every usage of sharedseq should make a call for ``freeColl`` to release
 ## the memory allocation to which scope it resides.
 ##
-## Also make sure to use lock or guard to prevent data-races. (outdated)
+## ~~Also make sure to use lock or guard to prevent data-races.~~ (outdated)
 ##
-## In later version, the guard would be provided within collection
-## so it could seamlessly used as if it's seq. (Implemented)
+## ~~In later version, the guard would be provided within collection
+## so it could seamlessly used as if it's seq.~~ (Implemented)
 ##
 ## But, the allocation still should be manually released.
 ##
@@ -167,6 +167,13 @@ proc delete*(p: var PColl, idx: int){.discardable.} =
     if temp.isNil:
       break
     guardedWith p:
+      when compiles(delete p.coll[i]):
+        # TODO: Fix this to foolproof the memory type
+        # Rely ``PColl`` users to implement ``delete`` proc for its individual
+        # element. If there's no ``delete`` function implemented, will
+        # the position will be overwritten with other value. The it's the
+        # reference type especially ``pointer`` or ``ptr T``, this will leak
+        delete p.coll[i]
       p.coll[i] = temp[]
     inc temp
 
