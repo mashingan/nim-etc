@@ -11,6 +11,10 @@
 ##
 ## To run this module independently, compile with:
 ## $ nim c -r --threads:on sharedseq
+##
+## Additionally, if we want to observe the memory, supply the additional
+## compile info ``-d:checkMemStat``. The statistics are observed
+## when the barber finished serving a customer
 
 import locks
 #TODO: For ref type element deletion
@@ -55,6 +59,7 @@ proc newColl*[T](size = 0, init: T): PColl[T] =
 
 proc freeColl*(p: PColl){.discardable.} =
   ## Freeing the allocated shared memory
+  deinitLock p.lock
   guardedWith p:
     discard p.coll.resizeShared 0
   discard p.resize 0
@@ -180,6 +185,9 @@ proc add*[T](p: var PColl, val: T) {.discardable.} =
     p[p.size] = val
   inc p.size
 
+when defined(checkMemStat):
+  proc getCollSize(p: var PColl): int =
+    p[].sizeof + p[0].sizeof * p.len
 
 when isMainModule:
   from os import sleep
@@ -240,6 +248,9 @@ when isMainModule:
         echo "now seatAvailable before serving: ", seatAvailable
         servingAction turn
         release lock
+        when defined(checkMemStat):
+          echo "seatAvailable memory after serving ",
+            getCollSize(seatAvailable)
         break
 
       elif cust.inQueue:
@@ -262,6 +273,8 @@ when isMainModule:
   initLock lock
 
   echo "Total customer today will be: ", totalCustomer
+  when defined(checkMemStat):
+    echo "seatAvailable initially allocated ", getCollSize(seatAvailable)
   for i in 1..totalCustomer:
     echo "loop in: ", i
     customers[i-1].createThread serving, newCustomer(i)
@@ -272,4 +285,10 @@ when isMainModule:
   joinThreads(customers)
   echo "Total served customers is ", servedCustomers
 
+  when defined(checkMemStat):
+    echo "Last time before freeing ", getCollSize seatAvailable
+
   seatAvailable.freeColl
+
+  when defined(checkMemStat):
+    echo "After freeing ", getCollSize seatAvailable
