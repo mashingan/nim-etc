@@ -18,6 +18,7 @@
 
 # cached folder
 nimcache/
+nim.cfg
 
 # built folder if available
 build/

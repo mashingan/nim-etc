@@ -60,6 +60,9 @@ proc newColl*[T](size = 0, init: T): PColl[T] =
 proc freeColl*(p: PColl){.discardable.} =
   ## Freeing the allocated shared memory
   deinitLock p.lock
+  when compiles(delete p[0]):
+    for i in 0 ..< p.size:
+      delete p[i]
   guardedWith p:
     discard p.coll.resizeShared 0
   discard p.resize 0

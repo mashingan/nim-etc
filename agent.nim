@@ -35,6 +35,9 @@ proc `@`*[T](agent: var Agent[T]): var T =
   ## accessed directly.
   agent.value
 
+proc `@`*[T](agent: PAgent[T]): var T =
+  @(agent[])
+
 proc makeAgent*[T](value: T): Agent[T] =
   ## Agent constructor.
   Agent[T](value: value)
@@ -44,20 +47,26 @@ when isMainModule:
   from times import cpuTime
 
   var agent = makeAgent 0
+  var agent2 = makeAgent 10
 
   echo "Initial agent: ", @agent
   var start = cpuTime()
   let v = agent <- proc (x: PAgent[int]):int =
     echo "sleep it first for 2 seconds before increment"
     sleep 2000
-    inc @(x[])
-    @(x[])
+    inc @x
+    @x
+
+  let v2 = agent2 <- proc(x: PAgent[int]): int =
+    echo "Sleep it first for 2 seconds before double it"
+    sleep 2000
+    @x = @x * 2
 
   echo "During spawning: ", @agent
   echo "is FlowVar ready? ", v.isReady
   var lastTime = cpuTime()
   echo "ready for looping works"
-  while not v.isReady:
+  while not v.isReady and not v2.isReady:
     var
       current = cpuTime()
       difftime = (current - lastTime) * 1000
@@ -65,4 +74,5 @@ when isMainModule:
       echo "Waited for ", (current - start), " seconds"
       lastTime = current
   echo "Now agent: ", @agent
+  echo "Now agent2: ", @agent2
   echo "Total time is ", cpuTime() - start, " seconds"
