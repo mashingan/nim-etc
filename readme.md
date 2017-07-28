@@ -13,3 +13,6 @@ Each army faction is labeled with lower case ascii, each plain is labeled with `
 The task was to write any regions each faction had controlled without writing any contested region. Lastly, write the total contested region within that map.  
 The solution using 2 macro to illustrate on Nim ability to control how coders to code whichever they like. In short, coders are able to create any DSL they want accordingly.  
 Also, the solution illustrates on DFS (deep-first search) to walk the map from any faction.
+
+## UDP Server
+A simple example of UDP server in Nim. Using module ``net``. Done to answer problem in forum https://forum.nim-lang.org/t/3074
