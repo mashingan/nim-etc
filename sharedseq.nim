@@ -202,6 +202,8 @@ when defined(checkMemStat):
 when isMainModule:
   from os import sleep
   from random import random, randomize
+  when defined(blocked):
+    from terminal import getch
   import locks
 
   type
@@ -285,6 +287,9 @@ when isMainModule:
   echo "Total customer today will be: ", totalCustomer
   when defined(checkMemStat):
     echo "seatAvailable initially allocated ", getCollSize(seatAvailable)
+  when defined(blocked):
+    stdout.write "Press a key to start"
+    discard getch()
   for i in 1..totalCustomer:
     echo "loop in: ", i
     customers[i-1].createThread serving, newCustomer(i)
@@ -302,3 +307,7 @@ when isMainModule:
 
   when defined(checkMemStat):
     echo "After freeing ", getCollSize seatAvailable
+
+  when defined(blocked):
+    stdout.write "press a key to exit"
+    discard getch()
