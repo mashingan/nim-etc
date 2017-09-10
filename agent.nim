@@ -63,16 +63,15 @@ when isMainModule:
     @x = @x * 2
 
   echo "During spawning: ", @agent
-  echo "is FlowVar ready? ", v.isReady
   var lastTime = cpuTime()
   echo "ready for looping works"
   while not v.isReady and not v2.isReady:
-    var
-      current = cpuTime()
-      difftime = (current - lastTime) * 1000
+    var current = cpuTime()
+    let difftime = (current - lastTime) * 1000
     if  difftime > 250:
       echo "Waited for ", (current - start), " seconds"
       lastTime = current
+  sync()
   echo "Now agent: ", @agent
   echo "Now agent2: ", @agent2
   echo "Total time is ", cpuTime() - start, " seconds"
