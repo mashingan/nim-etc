@@ -63,9 +63,9 @@ proc freeColl*(p: PColl){.discardable.} =
   when compiles(delete p[0]):
     for i in 0 ..< p.size:
       delete p[i]
-  guardedWith p:
-    discard p.coll.resizeShared 0
-  discard p.resize 0
+  if p.size > 0:
+    guardedWith p: p.coll.freeShared
+  p.dealloc
 
 proc `$`*(p: PColl): string =
   ## Stringify the collection
@@ -197,7 +197,7 @@ proc add*[T](p: var PColl, val: T) {.discardable.} =
 
 when defined(checkMemStat):
   proc getCollSize(p: var PColl): int =
-    p[].sizeof + p[0].sizeof * p.len
+    p[0].sizeof * p.len
 
 when isMainModule:
   from os import sleep
