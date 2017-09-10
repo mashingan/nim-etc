@@ -183,9 +183,10 @@ proc nextVisiting(pos: Pos, map: var Map): seq[Pos] =
 
 
 proc getMap(f: var File): Map =
-  var
+  let
     length = f.readLine.parseInt
     wide = f.readLine.parseInt
+  var
     terrain = newSeq[string]()
   for i in 0 ..< length:
     terrain.add f.readLine
@@ -197,7 +198,7 @@ proc `$`(map: Map): string =
   let length = map.length
   for i in 0 ..< length:
     when defined(todebug):
-      var
+      let
         lineinput = $i
         itslen = lineinput.len
       result &= spaces(max(0, 2-itslen)) & lineinput & " "
@@ -210,15 +211,15 @@ proc dispatch(map: var Map, army: Army): DispatchResult
 proc walkMap(map: var Map): seq[DispatchResult] =
   #result = newSeq[Army]()
   result = newSeq[DispatchResult]()
-  var lowerascii = { 'a' .. 'z' }
+  let lowerascii = { 'a' .. 'z' }
   for i in 0 ..< map.length:
     for j in 0 ..< map.wide:
-      var c = map.terrain[i][j]
+      let c = map.terrain[i][j]
       if c in lowerascii:
         result.add map.dispatch(Army(faction: c, pos: Pos(row: i, col: j)))
 
 proc contestedTerrain(map: Map, army: Army, pos: Pos): bool =
-  var atTerrain = map.terrain[pos.row][pos.col]
+  let atTerrain = map.terrain[pos.row][pos.col]
   if atTerrain != '.' and atTerrain != army.faction: true
   else: false
 
@@ -256,7 +257,7 @@ proc dispatch(map: var Map, army: Army): DispatchResult =
         map.walkin(pos.nextVisiting map)
       else:
         visited.add pos
-        var otherfaction = map.terrain[pos.row][pos.col]
+        let otherfaction = map.terrain[pos.row][pos.col]
         when defined(trailvisit):
           stdout.write("current faction ", army.faction, " at: ")
           stdout.write(army.pos.row, " ", army.pos.col, " found enemy")
@@ -276,12 +277,12 @@ proc dispatch(map: var Map, army: Army): DispatchResult =
 
 
 proc main =
-  var filename = "input.in.sample"
+  var filename = "armyfaction.input.sample"
   when declared(paramCount) and declared(paramStr):
     if paramCount() > 0:
       filename = paramStr 1
   var fp = open filename
-  var casetimes = parseInt fp.readLine
+  let casetimes = parseInt fp.readLine
 
 
   const specificmap{.intdefine.} = 0
@@ -314,7 +315,7 @@ proc main =
       proc(x: DispatchResult): Faction = x.army.faction).toCountTable
 
     for d in regionControllers:
-      var faction = d.army.faction
+      let faction = d.army.faction
       labelfact[faction] = labelfact[faction] + 1
 
     var labels = newSeq[Faction]()
@@ -338,7 +339,7 @@ proc main =
         stdout.write("conflict ", countcontested)
         echo " faction ", d.army.faction, d.army.region
         inc countcontested
-      var region = d.army.region.sorted cmp
+      let region = d.army.region.sorted cmp
       if region notin conflictregion:
       #if d.army.region notin conflictregion:
         when defined(todebug):
@@ -350,9 +351,10 @@ proc main =
 
     when defined(todebug):
       if conflictregion.len > 1:
-        var reg1 = conflictregion[0]
-        var reg2 = conflictregion[1]
-        var lengtharea = min(reg1.len, reg2.len)
+        let
+          reg1 = conflictregion[0]
+          reg2 = conflictregion[1]
+          lengtharea = min(reg1.len, reg2.len)
         var count = 0
         for i in 0 ..< lengtharea:
           echo "reg1: ", reg1[i], ", reg2: ", reg2[i]
