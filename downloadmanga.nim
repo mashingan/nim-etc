@@ -20,13 +20,12 @@ type
     imgurl, nextlink: string
 
 var
+  client = newHttpClient()
   url = paramStr 1
   opt: string
 
 proc process(url: string): seq[XmlNode] =
-  var client = newHttpClient()
   result = client.get(url).bodyStream.parseHtml.findAll "div"
-  client.close
 
 proc getInfo(divs: seq[XmlNode]): MangaPage =
   result.nextlink = ""
@@ -46,7 +45,6 @@ else:
 
 var page = process(url).getInfo
 while page.nextlink != "":
-  var client = newHttpClient()
   client.downloadFile(opt & page.imgurl, page.imgurl.split('/')[^1])
   echo page
   page = process(page.nextlink).getInfo
