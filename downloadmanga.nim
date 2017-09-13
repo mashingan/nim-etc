@@ -47,6 +47,6 @@ else:
 var page = process(url).getInfo
 while page.nextlink != "":
   var client = newHttpClient()
-  echo page
   client.downloadFile(opt & page.imgurl, page.imgurl.split('/')[^1])
+  echo page
   page = process(page.nextlink).getInfo
