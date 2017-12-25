@@ -14,6 +14,7 @@ proc cb(req: Request) {.async.} =
   content["method"] = ($req.reqMethod).newJString
   echo "filling headers"
   for header, value in req.headers.table.pairs:
+    echo header, ": ", value
     content[header] = value.join(", ").newJString
   let msg = $content
   echo "json content: ", msg
