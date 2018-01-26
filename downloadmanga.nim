@@ -10,7 +10,7 @@
 # Invoke the program with url in mangastream
 # ./downloadmanga http://readms.net/r/one_piece/875/4493/1
 #]#
-import httpclient, htmlparser, os, xmltree, strutils
+import httpclient, htmlparser, os, xmltree, strutils, uri
 
 if paramCount() < 1:
   quit "specify the url-path"
@@ -24,8 +24,11 @@ var
   url = paramStr 1
   opt: string
 
+proc restore(path: string): string =
+  $url.parseUri.combine(path.parseUri)
+
 proc process(url: string): seq[XmlNode] =
-  result = client.get(url).bodyStream.parseHtml.findAll "div"
+  client.get(url.restore).bodyStream.parseHtml.findAll "div"
 
 proc getInfo(divs: seq[XmlNode]): MangaPage =
   result.nextlink = ""

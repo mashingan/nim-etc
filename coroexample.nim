@@ -51,16 +51,12 @@ proc main =
         else:
           echo "Now contention of writing"
         let sleeping = 300.random
+        suspend()
         sleepTotal += sleeping
         sleep sleeping
-        suspend()
     )
   let startTime = cpuTime()
   run()
-  #[
-  wait producer
-  wait consumer
-  ]#
   echo "The cpuTime needed is ", cpuTime() - startTime, " with sleeping ",
     sleepTotal, " ms."
 
