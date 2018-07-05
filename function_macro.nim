@@ -1,3 +1,9 @@
+## This macro is additional modification from my thread asking on how
+## to expand the defined Proc Type
+## I modified and improve the answer from @mratsim here
+## https://forum.nim-lang.org/t/4012#24965
+## and now able to support exported procs definition
+
 import macros
 
 type
