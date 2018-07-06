@@ -6,9 +6,6 @@
 
 import macros
 
-type
-  Handler = proc(x: int): int
-
 macro function_impl(head: untyped, handlertype: typed, body: untyped):
     untyped =
   var
@@ -39,8 +36,12 @@ macro function*(head_oftype, body: untyped): untyped =
 
   result = quote do: function_impl(`head`, `oftype`, `body`)
 
-function handleThis* of Handler:
-  x * 10
-
 when isMainModule:
+  type
+    Handler = proc(x: int): int
+
+  function handleThis* of Handler:
+    x * 10
+
+
   echo handleThis(5)
