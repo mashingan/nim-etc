@@ -18,6 +18,9 @@ macro function_impl(head: untyped, handlertype: typed, body: untyped):
   result = newProc(name = head,
     params = params,
     body = body)
+  var pragma = handlerimpl[2][1]
+  if pragma.kind != nnkEmpty:
+    result.pragma = pragma
 
 
 macro function*(head_oftype, body: untyped): untyped =
