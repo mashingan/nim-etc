@@ -17,3 +17,7 @@ Compile with ``-d:release`` to avoid stack overflow because of DFS while walking
 
 ## UDP Server
 A simple example of UDP server in Nim. Using module ``net``. Done to answer problem in forum https://forum.nim-lang.org/t/3074
+
+## crud_web
+Simple Web CRUD (only Create and Read though) using sqlite DB which should
+be applicative to other kind of DB.
