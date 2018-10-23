@@ -21,3 +21,11 @@ A simple example of UDP server in Nim. Using module ``net``. Done to answer prob
 ## crud_web
 Simple Web CRUD (only Create and Read though) using sqlite DB which should
 be applicative to other kind of DB.
+
+## js-visitor
+An example from [Dennis' page "What special about Nim?"](https://hookrace.net/blog/what-is-special-about-nim/)
+which illustrate Nim flexibility compiled to JavaScript
+
+## jester-0.4.1-example
+The same example with [crud_web](#crud_web) which adapted to newer Jester's
+version and using Nim 0.19.0 which initialize `string` and `seq` to not `nil`
