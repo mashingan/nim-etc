@@ -29,3 +29,7 @@ which illustrate Nim flexibility compiled to JavaScript
 ## jester-0.4.1-example
 The same example with [crud_web](#crud_web) which adapted to newer Jester's
 version and using Nim 0.19.0 which initialize `string` and `seq` to not `nil`
+
+## front-end-karax
+Experiment with [Karax](https://github.com/pragmagic/karax).  
+Additional information can be read [here](./front-end-karax/readme.md)
