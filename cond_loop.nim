@@ -66,7 +66,7 @@ proc chanSending() {.thread.} =
     if num > 10:
       break
 
-when defined(vcc):
+when defined(vcc) or defined(tcc):
   var
     threadsend: Thread[void]
     threadwait: Thread[void]
