@@ -5,7 +5,7 @@
 import pegs, strtabs, strformat, strutils, rdstdin
 
 let strtmpl = """<name> went for a walk in the park. <he or she>
-found a <noun>. <name> decided to take it home"""
+found a <noun>. <name> decided to <what> it <where>"""
 
 echo "The story template is\n", strtmpl, "\n"
 var replacer = newStringTable()
