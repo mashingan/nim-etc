@@ -7,10 +7,18 @@
 #
 # if we don't have openssl installed, remove the -d:ssl option before
 #
+# To choose the version that simply parse the string, compile with:
+# $ nim c -d:release -d:ssl -d:stringparse downloadmanga
+#
+# The string parse version should has better performance because it's
+# only parse the page linearly instead of parse the entire xml
+#
 # Invoke the program with url in mangastream
 # ./downloadmanga http://readms.net/r/one_piece/875/4493/1
 #]#
 import httpclient, htmlparser, os, xmltree, strutils, uri
+when not defined(release):
+  import sugar
 
 if paramCount() < 1:
   quit "specify the url-path"
@@ -41,13 +49,55 @@ proc getInfo(divs: seq[XmlNode]): MangaPage =
       )
       break
 
+proc getInfo(content: string): MangaPage =
+  result = MangaPage()
+  let
+    classpage = "div class=\"page\">"
+    thru1 = "a href=\""
+    cap1 = "\">"
+    thru2 = "src=\""
+    cap2 = "\" "
+    cppos = content.find(classpage)
+
+  when not defined(release):
+    dump cppos
+
+  if cppos == -1:
+    return
+  let
+    thr1found = content.find(thru1, cppos)
+    cap1found = content.find(cap1, thr1found)
+  when not defined(release):
+    dump thr1found
+    dump cap1found
+  result.nextlink = content[thr1found+thru1.len .. cap1found-1]
+  when not defined(release):
+    dump result.nextlink
+  let
+    imgpos = content.find(thru2, cap1found)
+    imgcp1 = content.find(cap2, imgpos)
+  when not defined(release):
+    dump imgpos
+    dump imgcp1
+  if imgpos == -1:
+    return
+  result.imgurl = content[imgpos+thru2.len .. imgcp1-1]
+  when not defined(release): dump result.imgurl
+
+
 if url.startsWith "https":
   opt = "https:"
 else:
   opt = "http:"
 
-var page = process(url).getInfo
+when defined(stringparse):
+  var page = client.getContent(url.restore).getInfo
+else:
+  var page = process(url).getInfo
 while page.nextlink != "":
   client.downloadFile(opt & page.imgurl, page.imgurl.split('/')[^1])
   echo page
-  page = process(page.nextlink).getInfo
+  when defined(stringparse):
+    page = client.getContent(page.nextlink.restore).getInfo
+  else:
+    page = process(page.nextlink).getInfo
