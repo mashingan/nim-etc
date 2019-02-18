@@ -1,3 +1,5 @@
+# implementation from original article which use java
+# http://www.theprojectspot.com/tutorial-post/creating-a-genetic-algorithm-for-beginners/3
 import math, random, strutils, sequtils, strformat
 
 const
