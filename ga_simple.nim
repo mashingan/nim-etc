@@ -68,8 +68,7 @@ proc evolve(pops: var Population, sol: Solution) =
       ida = pops.tournamentSelection sol
       idb = pops.tournamentSelection sol
     pops[i] = ida.crossover idb
-    #mutate pops[i]
-  pops.apply do (indiv: var Individual): indiv.mutate
+    mutate pops[i]
 
 proc maxfitness(sol: Solution): int =
   sol.len
