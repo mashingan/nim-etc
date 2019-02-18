@@ -54,10 +54,9 @@ proc tournamentSelection(pops: Population, sol: Solution): Individual =
 
 proc crossover(ida, idb: Individual): Individual =
   result.genes = newseq[byte](ida.genes.len)
-  #for i, gene in result.mitems:
-  for i in 0 ..< ida.genes.len:
-    result.genes[i] = if 1.0.rand <= uniformRate: ida.genes[i]
-                      else: idb.genes[i]
+  for i, genes in ida.genes.zip idb.genes:
+    result.genes[i] = if 1.0.rand <= uniformRate: genes.a
+                      else: genes.b
 
 proc evolve(pops: var Population, sol: Solution) =
   var offset = 0
