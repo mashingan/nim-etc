@@ -98,59 +98,59 @@ proc main =
     (nodes, conn) = graph.populateGraph entry
     orig = "cadeb"
     dest = "dceab"
-  echo fmt"time to populate graph: {cpuTime() - start}"
+  echo fmt"time to populate graph: {cpuTime() - start} s"
   echo fmt"Graph nodes: {graph.vertices.len}"
   echo fmt"Graph edges: {graph.edges.len}"
-  echo "predetermined path"
+  echo "\npredetermined path"
   dump orig
   dump dest
   start = cpuTime()
   var (minimumCostPath, shortestPath) = graph.lookingPath(orig, dest)
-  echo fmt"time to search path: {cpuTime() - start}"
+  echo fmt"time to search path: {cpuTime() - start} s"
 
   var
     route = minimumCostPath.getRoute
     sla = minimumCostPath.getCost
-  echo fmt"minimum cost route: {route}: cost time: {sla}"
+  echo fmt"minimum cost route: {route}: cost time: {sla} minutes"
   route = shortestPath.getRoute
   sla = shortestPath.getCost
-  echo fmt"shortest route: {route}: cost time: {sla}"
+  echo fmt"shortest route: {route}: cost time: {sla} minutes"
 
   var
     orig2 = rand nodes
     dest2 = rand nodes
-  echo "random path"
+  echo "\nrandom path"
   dump orig2
   dump dest2
   start = cpuTime()
   (minimumCostPath, shortestPath) = graph.lookingPath(orig2, dest2)
-  echo fmt"time to search path: {cpuTime() - start}"
+  echo fmt"time to search path: {cpuTime() - start} s"
 
   route = minimumCostPath.getRoute
   sla = minimumCostPath.getCost
-  echo fmt"minimum cost route: {route}: cost time: {sla}"
+  echo fmt"minimum cost route: {route}: cost time: {sla} minutes"
   route = shortestPath.getRoute
   sla = shortestPath.getCost
-  echo fmt"shortest route: {route}: cost time: {sla}"
+  echo fmt"shortest route: {route}: cost time: {sla} minutes"
 
   start = cpuTime()
-  echo "bfs shortest path"
+  echo "\n\nbfs shortest path"
   dump orig
   dump dest
   var bfspath = graph.shortestPath(initVertex(orig, 0), initVertex(dest, 0))
   route = bfspath.getRoute
   sla = bfspath.getCost
-  echo fmt"bfs route: {route}: cost time: {sla}"
-  echo fmt"time to search: {cpuTime() - start}"
+  echo fmt"bfs route: {route}: cost time: {sla} minutes"
+  echo fmt"time to search: {cpuTime() - start} s"
 
-  echo "bfs random orig/dest"
+  echo "\nbfs random orig/dest"
   dump orig2
   dump dest2
   bfspath = graph.shortestPath(initVertex(orig2, 0), initVertex(dest2, 0))
   route = bfspath.getRoute
   sla = bfspath.getCost
-  echo fmt"bfs route: {route}: cost time: {sla}"
-  echo fmt"time to search: {cpuTime() - start}"
+  echo fmt"bfs route: {route}: cost time: {sla} minutes"
+  echo fmt"time to search: {cpuTime() - start} s"
 
 
 main()
