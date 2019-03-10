@@ -1,5 +1,6 @@
 import hashes, tables, random, strformat, sugar, sequtils
 import times, os, strscans, strutils
+from terminal import getch
 
 import graflib
 
@@ -37,7 +38,7 @@ template getRoute(x: untyped): untyped =
 template getCost(x: untyped): untyped =
   x.mapIt( it.weight ).foldl(a + b)
 
-proc populateGraph(g: var Graph, entry: int): (seq[string], TableRef[Edgen, int]) =
+proc populate(g: var Graph, entry: int): (seq[string], TableRef[Edgen, int]) =
   var buff = newseq[string]()
   var
     i = 0
@@ -67,6 +68,7 @@ proc populateGraph(g: var Graph, entry: int): (seq[string], TableRef[Edgen, int]
       if n1 notin buff: buff.add n1
       if n2 notin buff: buff.add n2
       inc i
+    close f
   result = (buff, existingEdges)
 
 proc lookingPath(graph: Graph, orig, dest: string):
@@ -95,12 +97,18 @@ proc main =
   var
     start = cpuTime()
     graph = buildGraph[string, int](directed = true)
-    (nodes, conn) = graph.populateGraph entry
+    (nodes, conn) = graph.populate entry
     orig = "cadeb"
     dest = "dceab"
+    orig2 = rand nodes
+    dest2 = rand nodes
+    route: string
+    bfspath: seq[Vertex[string, int]]
+    sla = 0
   echo fmt"time to populate graph: {cpuTime() - start} s"
   echo fmt"Graph nodes: {graph.vertices.len}"
   echo fmt"Graph edges: {graph.edges.len}"
+
   echo "\npredetermined path"
   dump orig
   dump dest
@@ -108,17 +116,13 @@ proc main =
   var (minimumCostPath, shortestPath) = graph.lookingPath(orig, dest)
   echo fmt"time to search path: {cpuTime() - start} s"
 
-  var
-    route = minimumCostPath.getRoute
-    sla = minimumCostPath.getCost
+  route = minimumCostPath.getRoute
+  sla = minimumCostPath.getCost
   echo fmt"minimum cost route: {route}: cost time: {sla} minutes"
   route = shortestPath.getRoute
   sla = shortestPath.getCost
   echo fmt"shortest route: {route}: cost time: {sla} minutes"
 
-  var
-    orig2 = rand nodes
-    dest2 = rand nodes
   echo "\nrandom path"
   dump orig2
   dump dest2
@@ -137,7 +141,7 @@ proc main =
   echo "\n\nbfs shortest path"
   dump orig
   dump dest
-  var bfspath = graph.shortestPath(initVertex(orig, 0), initVertex(dest, 0))
+  bfspath = graph.shortestPath(initVertex(orig, 0), initVertex(dest, 0))
   route = bfspath.getRoute
   sla = bfspath.getCost
   echo fmt"bfs route: {route}: cost time: {sla} minutes"
@@ -146,11 +150,14 @@ proc main =
   echo "\nbfs random orig/dest"
   dump orig2
   dump dest2
+  start = cpuTime()
   bfspath = graph.shortestPath(initVertex(orig2, 0), initVertex(dest2, 0))
   route = bfspath.getRoute
   sla = bfspath.getCost
   echo fmt"bfs route: {route}: cost time: {sla} minutes"
   echo fmt"time to search: {cpuTime() - start} s"
+  echo "press something to exit"
+  discard getch()
 
 
 main()
