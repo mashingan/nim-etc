@@ -27,6 +27,9 @@ import httpclient, htmlparser, os, xmltree, strutils, uri
 when not defined(release):
   import sugar
 
+when not defined(withpegs) and not defined(stringparse):
+  {.error: "parsing xml version is not supported anymore.".}
+
 when defined(withpegs):
   import pegs
 
@@ -64,9 +67,13 @@ when defined(withpegs):
     base1 = peg"""@ 'div class="page">'"""
     thru1 = peg"""@ 'a href="' {@} '">'"""
     thru2 = peg"""@ 'src="' {@} '" ' .*$"""
+    chapnum = peg"""@ '/r/' @ '/' {\d+} '/' .*$"""
     mangaparser = sequence(base1, thru1, thru2)
 
-proc getInfo(content: string): MangaPage =
+proc getInfo(link: string): MangaPage =
+  when not defined(release):
+    echo "restored link: ", link.restore
+  let content = client.getContent link.restore
   result = MangaPage()
   when defined(withpegs):
     if content =~ mangaparser:
@@ -74,7 +81,26 @@ proc getInfo(content: string): MangaPage =
       discard content.find(mangaparser, buff)
       result.nextlink = buff[0]
       result.imgurl = buff[1]
+      if buff[0] == "":
+        return
+      var
+        currentChapter = @[""]
+        nextchapter = @[""]
+      discard link.find(chapnum, currentChapter)
+      discard buff[0].find(chapnum, nextChapter)
+      if currentChapter[0] != nextChapter[0]:
+        result.nextlink = ""
   else:
+    template chapterExtract(url: string): string =
+      var starting = 3
+      if url.startsWith "http:":
+        starting += url.find("/r/") + 1
+
+      let
+        p1 = url.find("/", start = starting)
+        p2 = url.find("/", start = p1+1)
+      url[p1+1 .. p2-1]
+
     let
       classpage = "div class=\"page\">"
       thru1 = "a href=\""
@@ -97,6 +123,16 @@ proc getInfo(content: string): MangaPage =
     result.nextlink = content[thr1found+thru1.len .. cap1found-1]
     when not defined(release):
       dump result.nextlink
+    if link.chapterExtract != result.nextlink.chapterExtract:
+      when not defined(release):
+        let
+          currchap = link.chapterExtract
+          nextchap = result.nextlink.chapterExtract
+        dump link
+        dump currchap
+        dump nextchap
+      result.nextlink = ""
+      return
     let
       imgpos = content.find(thru2, cap1found)
       imgcp1 = content.find(cap2, imgpos)
@@ -115,14 +151,13 @@ else:
   opt = "http:"
 
 when defined(stringparse) or defined(withpegs):
-  var page = client.getContent(url.restore).getInfo
+  var page = getInfo url
 else:
   var page = process(url).getInfo
 while page.nextlink != "":
-  when not defined(withpegs):
-    client.downloadFile(opt & page.imgurl, page.imgurl.split('/')[^1])
+  client.downloadFile(opt & page.imgurl, page.imgurl.split('/')[^1])
   echo page
   when defined(stringparse) or defined(withpegs):
-    page = client.getContent(page.nextlink.restore).getInfo
+    page = page.nextlink.getInfo
   else:
     page = process(page.nextlink).getInfo
