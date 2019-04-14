@@ -73,7 +73,11 @@ when defined(withpegs):
 proc getInfo(link: string): MangaPage =
   when not defined(release):
     echo "restored link: ", link.restore
-  let content = client.getContent link.restore
+  when not defined(stringparse) and not defined(withpegs):
+    let content = client.get(url.restore).bodyStream.parseHtml.findAll "div"
+    result = content.getInfo
+  else:
+    let content = client.getContent link.restore
   result = MangaPage()
   when defined(withpegs):
     if content =~ mangaparser:
@@ -150,14 +154,12 @@ if url.startsWith "https":
 else:
   opt = "http:"
 
-when defined(stringparse) or defined(withpegs):
+while true:
   var page = getInfo url
-else:
-  var page = process(url).getInfo
-while page.nextlink != "":
-  client.downloadFile(opt & page.imgurl, page.imgurl.split('/')[^1])
   echo page
-  when defined(stringparse) or defined(withpegs):
-    page = page.nextlink.getInfo
-  else:
-    page = process(page.nextlink).getInfo
+  if page.imgurl == "":
+    break
+  client.downloadFile(opt & page.imgurl, page.imgurl.split('/')[^1])
+  if page.nextlink == "":
+    break
+  url = page.nextlink
