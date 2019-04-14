@@ -1,5 +1,5 @@
 import httpclient, htmlparser, xmltree, strutils, uri, os
-import asyncdispatch
+import asyncdispatch, sequtils
 
 type
   MangaPage = object
@@ -13,7 +13,6 @@ proc getInfo(initurl, url: string): Future[MangaPage] {.async.} =
     client = newAsyncHttpClient()
     asyncrep = await client.get initurl.restore(url)
     divs = (await asyncrep.body).parseHtml.findAll "div"
-    #divs = (await client.get(initurl.restore(url)).body).parseHtml.findAll "div"
 
   result.nextlink = ""
   result.imgurl = ""
@@ -30,7 +29,9 @@ proc download(opt, imgurl: string): Future[void] {.async.} =
   client.headers = newHttpHeaders(
     { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41"})
   try:
-    await client.downloadFile(opt & imgurl, imgurl.split('/')[^1])
+    let filename = imgurl.split('/')[^1]
+    await client.downloadFile(opt & imgurl, filename)
+    echo "downloaded: ", filename
   except:
     echo "Cannot download ", imgurl
     #echo getCurrentExceptionMsg()
@@ -40,8 +41,11 @@ proc extractChapter(url: string): int =
     rpos = url.find("/r/")
     nextslash = url.find("/", start=rpos+3)
     chap = url[nextslash+1 .. url.find("/", start=nextslash+1)-1]
-  result = try: parseInt chap
-           except: -1
+  if chap.all isDigit:
+    result = try: parseInt chap
+             except: -1
+  else:
+    result = -1
 
 proc main {.async.} =
   if paramCount() < 1:
