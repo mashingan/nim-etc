@@ -12,22 +12,18 @@ proc getInfo(initurl, url: string): Future[MangaPage] {.async.} =
   let
     client = newAsyncHttpClient()
     asyncrep = await client.get initurl.restore(url)
-    divs = (await asyncrep.body).parseHtml.findAll "div"
+    nodes = (await asyncrep.body).parseHtml
 
   result.nextlink = ""
   result.imgurl = ""
-  for node in divs:
-    if node.attr("class") == "page":
-      result = MangaPage(
-        nextlink: node.findAll("a")[0].attr("href"),
-        imgurl: node.findAll("img")[0].attr("src")
-      )
+  for node in nodes:
+    if node.kind == xnElement and node.attr("class") == "page":
+      result.nextlink = node.child("a").attr "href"
+      result.imgurl = node.child("img").attr "src"
       break
 
 proc download(opt, imgurl: string): Future[void] {.async.} =
   var client = newAsyncHttpClient()
-  client.headers = newHttpHeaders(
-    { "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36 OPR/38.0.2220.41"})
   try:
     let filename = imgurl.split('/')[^1]
     await client.downloadFile(opt & imgurl, filename)
