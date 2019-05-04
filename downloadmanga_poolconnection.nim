@@ -103,7 +103,7 @@ proc main {.async.} =
           else: "http:"
     currentChapter = extractChapter url
   var
-    pool = initPool()
+    pool = initPool(4)
     client = newAsyncHttpClient()
     futuredownloads = newseq[Future[void]]()
     page = MangaPage(nextlink: url)
