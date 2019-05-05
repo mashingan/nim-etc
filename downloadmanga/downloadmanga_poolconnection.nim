@@ -74,6 +74,7 @@ proc download(pool: Pool, opt, imgurl: string): Future[void] {.async.} =
     else:
       client = get optval
       break
+  echo fmt"downloading with conn id: {idConn}"
   let fname = imgurl.rsplit('/', 1)[^1]
   file = openAsync(fname, fmWrite)
   try:
@@ -102,8 +103,14 @@ proc main {.async.} =
     opt = if url.startsWith "https": "https:"
           else: "http:"
     currentChapter = extractChapter url
+    poolsize =
+      if paramCount() > 1:
+        try: paramStr(2).parseInt
+        except: 4
+      else: 4
+  echo fmt"the pool size is {poolsize}"
   var
-    pool = initPool(4)
+    pool = initPool(poolsize)
     client = newAsyncHttpClient()
     futuredownloads = newseq[Future[void]]()
     page = MangaPage(nextlink: url)

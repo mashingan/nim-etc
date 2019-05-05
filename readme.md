@@ -30,6 +30,10 @@ which illustrate Nim flexibility compiled to JavaScript
 The same example with [crud_web](#crud_web) which adapted to newer Jester's
 version and using Nim 0.19.0 which initialize `string` and `seq` to not `nil`
 
+## downloadmanga
+Various implementation of webscraping and getting the file in the page.  
+The detail can be found [here](./downloadmanga/readme.md).
+
 ## front-end-karax
 Experiment with [Karax](https://github.com/pragmagic/karax).  
 Additional information can be read [here](./front-end-karax/readme.md)
