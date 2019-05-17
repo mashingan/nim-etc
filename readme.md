@@ -37,3 +37,7 @@ The detail can be found [here](./downloadmanga/readme.md).
 ## front-end-karax
 Experiment with [Karax](https://github.com/pragmagic/karax).  
 Additional information can be read [here](./front-end-karax/readme.md)
+
+## poolclient
+This example shows on how to the pooled client together with its simple
+server implementation.
