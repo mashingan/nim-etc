@@ -70,7 +70,8 @@ proc download(pool: Pool, opt, imgurl: string): Future[void] {.async.} =
   while true:
     (idConn, optval) = pool.getConn
     if optval.isNone:
-      discard sleepAsync 10
+      try: poll(10)
+      except: echo getCurrentExceptionMsg()
     else:
       client = get optval
       break
