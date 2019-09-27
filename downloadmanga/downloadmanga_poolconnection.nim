@@ -1,6 +1,8 @@
-import httpclient, strutils, uri, os
+import httpclient, strutils, uri, os, osproc
 import asyncdispatch, streams, parsexml, times, strformat
 import sugar, math, deques, options, tables, asyncfile
+
+const zip7exe = "\"C:\\Program Files\\7-zip\\7z.exe\""
 
 type
   MangaPage = object
@@ -61,7 +63,7 @@ proc getInfo(client: AsyncHttpClient, initurl, url: string):
     of xmlEof: break
     else: discard
 
-proc download(pool: Pool, opt, imgurl: string): Future[void] {.async.} =
+proc download(pool: Pool, opt, chapnum, imgurl: string): Future[void] {.async.} =
   var
     client: AsyncHttpClient
     idConn: int
@@ -75,18 +77,22 @@ proc download(pool: Pool, opt, imgurl: string): Future[void] {.async.} =
     else:
       client = get optval
       break
+  createDir chapnum
   echo fmt"downloading with conn id: {idConn}"
-  let fname = imgurl.rsplit('/', 1)[^1]
-  file = openAsync(fname, fmWrite)
+  var fname = imgurl.rsplit('/', 1)[^1]
+  let (_, name, ext) = fname.splitFile
+  if name.len > 2 and ext != "jpg":
+    fname = name[0 .. 1].addFileExt ext
+  file = openAsync(chapnum / fname, fmWrite)
   try:
     await file.write(await client.getContent opt & imgurl)
-    #echo fmt"downloaded {fname} with size {file.getFileSize}"
+    echo fmt"downloaded {fname} with size {file.getFileSize}"
   except:
     echo "Cannot download ", imgurl
     #echo getCurrentExceptionMsg()
   finally:
     pool.returnConn idConn
-    #close file
+    close file
 
 proc extractChapter(url: string): int =
   let
@@ -96,19 +102,30 @@ proc extractChapter(url: string): int =
   result = try: parseInt chap
            except: -1
 
+proc zipall(parentdir: string, dirs: seq[int]) =
+  for chap in dirs:
+    let cmd = zip7exe & fmt""" a "{parentdir} - {$chap} [Mangastream].zip"  {$chap}"""
+    echo cmd
+    let res = execCmd(cmd)
+    if res == 0:
+      removeDir $chap
+
 proc main {.async.} =
   if paramCount() < 1:
     quit "Specify the url"
   let
     url = paramStr 1
+    dirname = getCurrentDir().lastPathPart
     opt = if url.startsWith "https": "https:"
           else: "http:"
-    currentChapter = extractChapter url
     poolsize =
       if paramCount() > 1:
         try: paramStr(2).parseInt
         except: 4
       else: 4
+  var
+    lastchap = extractChapter url
+    workedchaps = newseq[int]()
   echo fmt"the pool size is {poolsize}"
   var
     pool = initPool(poolsize)
@@ -119,12 +136,15 @@ proc main {.async.} =
   while true:
     page = await client.getInfo(url, page.nextlink)
     echo page
-    futuredownloads.add pool.download(opt, page.imgurl)
-    if page.nextlink == "" or
-       extractChapter(page.nextlink) == -1 or
-       extractChapter(page.nextlink) != currentChapter:
+    let thischap = page.nextlink.extractChapter
+    futuredownloads.add pool.download(opt, $lastchap, page.imgurl)
+    if page.nextlink == "" or thischap == -1: #or thischap != currentChapter:
       break
+    elif thischap notin workedchaps:
+      workedchaps.add thischap
+    lastchap = thischap
   await all(futuredownloads)
   echo "ended after: ", cpuTime() - starttime
+  dirname.zipall workedchaps
 
 waitFor main()
