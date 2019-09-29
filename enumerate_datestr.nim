@@ -2,9 +2,9 @@
 # Initial problem was asked in the forum https://forum.nim-lang.org/t/3005
 # and this is the result of solution.
 
-import times
+import times, strformat
 
-iterator `..`*(ds1, ds2: string): TimeInfo =
+template iterdays(ds1, ds2: string, op: untyped): untyped =
   var
     d1 = ds1.parse("yyyy-MM-dd")
     d2 = ds2.parse("yyyy-MM-dd")
@@ -17,17 +17,36 @@ iterator `..`*(ds1, ds2: string): TimeInfo =
   else:
     interval = initInterval(months=1)
 
-  while d1.toTime <= d2.toTime:
+  while `op`(d1.toTime, d2.toTime):
     yield d1
     d1 = d1 + interval
 
+iterator `..`*(ds1, ds2: string): DateTime =
+  iterdays(ds1, ds2, `<=`)
+
+iterator `..<`*(ds1, ds2: string): DateTime =
+  iterdays(ds1, ds2, `<`)
+
 when isMainModule:
-  echo "enumerate days"
-  for dt in "2017-03-10" .. "2017-03-15":
+  let
+    startday = "2017-03-10"
+    endday = "2017-03-15"
+    startmonth = "2017-03-10"
+    endmonth = "2017-10-10"
+  echo fmt"enumerate days {startday} .. {endday}"
+  for dt in startday .. endday:
     echo dt
   echo()
 
-  echo "enumerate months"
-  for dt in "2017-03-10" .. "2017-10-10":
+  echo fmt"enumerate months {startmonth} .. {endmonth}"
+  for dt in startmonth .. endmonth:
+    echo dt
+  echo("==============")
+  echo fmt"enumerate days {startday} ..< {endday}"
+  for dt in startday ..< endday:
     echo dt
   echo()
+
+  echo fmt"enumerate months {startmonth} ..< {endmonth}"
+  for dt in startmonth ..< endmonth:
+    echo dt
