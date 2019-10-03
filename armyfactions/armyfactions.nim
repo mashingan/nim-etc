@@ -282,7 +282,7 @@ proc main =
     if paramCount() > 0:
       filename = paramStr 1
   var fp = open filename
-  let casetimes = parseInt fp.readLine
+  var casetimes = parseInt fp.readLine
 
 
   const specificmap{.intdefine.} = 0
@@ -306,28 +306,12 @@ proc main =
       conflictingFactions = armies.filterIt(it.contested.len != 0)
     regionControllers.sort(proc (x, y: DispatchResult): int =
       cmp x.army.faction, y.army.faction)
-    #[
-    conflictingFactions.sort(proc (x, y: DispatchResult): int =
-      cmp x.army.faction, y.army.faction)
-      ]#
 
     var labelfact = regionControllers.map(
       proc(x: DispatchResult): Faction = x.army.faction).toCountTable
 
-    for d in regionControllers:
-      let faction = d.army.faction
-      labelfact[faction] = labelfact[faction] + 1
-
-    var labels = newSeq[Faction]()
-    for faction, region in labelfact.pairs:
-      labels.add faction
-    labels.sort cmp
-    for faction in labels:
-      echo faction, " ", labelfact[faction] - 1
-    #[
-    for faction, region in labelfact.pairs:
-      echo faction, " ", region - 1
-    ]#
+    for faction, region in labelfact:
+      echo faction, " ", region
 
     var conflictregion = newSeq[seq[Pos]]()
     var regionconflict = 0
