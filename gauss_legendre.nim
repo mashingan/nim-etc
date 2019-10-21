@@ -1,8 +1,7 @@
 # rosettacode.org source
 #http://rosettacode.org/wiki/Numerical_integration/Gauss-Legendre_Quadrature
 
-import math
-from sugar import dump
+import math, strformat
 
 proc legendreIn(x: float, n: int): float =
 
@@ -19,7 +18,7 @@ proc legendreIn(x: float, n: int): float =
   else:
     var
       p1 = float x
-      p2 = 1'f
+      p2 = 1.0
     for i in 2 .. n:
       result = (i.prev1(p1) - i.prev2(p2)) / i.float
       p2 = p1
@@ -56,12 +55,27 @@ proc integ(f: proc(x: float): float; ns, p1, p2: int): float =
   template avg: untyped =
     (p1 + p2).float / 2.0
   result = dist()
-  var sum = 0'f
-  for nw in ns.nodes:
+  var
+    sum = 0'f
+    thenodes = newseq[float](ns)
+    weights = newseq[float](ns)
+  for i, nw in ns.nodes:
     sum += nw[1] * f(dist() * nw[0] + avg())
+    thenodes[i] = nw[0]
+    weights[i] = nw[1]
+
+  let apos = ":"
+  stdout.write fmt"""{"nodes":>8}{apos}"""
+  for n in thenodes:
+    stdout.write &" {n:>6.5f}"
+  stdout.write "\n"
+  stdout.write &"""{"weights":>8}{apos}"""
+  for w in weights:
+    stdout.write &" {w:>6.5f}"
+  stdout.write "\n"
   result *= sum
 
 proc main =
-  dump integ(exp, 5, -3, 3)
+  echo "integral: ", integ(exp, 5, -3, 3)
 
 main()
