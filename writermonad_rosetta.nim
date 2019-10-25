@@ -13,9 +13,12 @@ proc bindWith(f: proc(x: float): float; log: string): WriterBind =
     (f(a[0]), a[1] & log)
   )
 
+func doneWith(x: int): WriterUnit =
+  (x.float, "")
+
 var
   logRoot = sqrt.bindWith "obtained square root, "
   logAddOne = ((x: float) => x+1'f).bindWith "added 1, "
   logHalf = ((x: float) => x/2'f).bindWith "divided by 2, "
 
-echo (5.0, "").logRoot.logAddOne.logHalf
+echo 5.doneWith.logRoot.logAddOne.logHalf
