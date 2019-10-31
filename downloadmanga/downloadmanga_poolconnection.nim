@@ -87,22 +87,21 @@ proc download(pool: Pool, opt, chapnum, imgurl: string): Future[void] {.async.} 
   if name.len > 2 and ext != "jpg":
     fname = name[0 .. 1].addFileExt ext
   let dirn = chapnum / fname
-  try:
-    file = openAsync(dirn, fmWrite)
-  except:
-    echo fmt"id {idConn} failed to open {dirn}"
-    pool.returnConn idConn
-    return
 
   try:
+    file = openAsync(dirn, fmWrite)
     await file.write(await client.getContent opt & imgurl)
     echo fmt"downloaded {fname} with size {file.getFileSize}"
+  except OSError:
+    echo fmt"id {idConn} failed to open {dirn}"
+    echo getCurrentExceptionMsg()
   except:
     echo "Cannot download ", imgurl
-    #echo getCurrentExceptionMsg()
+    echo getCurrentExceptionMsg()
   finally:
     pool.returnConn idConn
-    close file
+    if not file.isNil:
+      close file
 
 proc extractChapter(url: string): int =
   let
@@ -118,10 +117,6 @@ proc zip(parentdir: string; chap: int) =
   let res = execCmd(cmd)
   if res == 0:
     removeDir $chap
-
-proc zipall(parentdir: string, dirs: seq[int]) =
-  for chap in dirs:
-    parentdir.zip chap
 
 proc main =
   if paramCount() < 1:
@@ -148,20 +143,17 @@ proc main =
     starttime = cpuTime()
   echo page
   while true:
-    #page = await client.getInfo(url, page.nextlink)
     page = waitFor client.getInfo(url, page.nextlink)
     echo page
     let nextchap = page.nextlink.extractChapter
     futuredownloads.add pool.download(opt, $lastchap, page.imgurl)
-    if page.nextlink == "" or nextchap == -1: #or thischap != currentChapter:
+    if page.nextlink == "" or nextchap == -1:
       break
     elif nextchap notin workedchaps:
       workedchaps.add nextchap
     lastchap = nextchap
-  #await all(futuredownloads)
   waitFor all(futuredownloads)
   echo "ended after: ", cpuTime() - starttime
-  #dirname.zipall workedchaps
   for chap in workedchaps:
     spawn(dirname.zip chap)
   sync()
