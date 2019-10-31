@@ -1,6 +1,9 @@
+# to compile:
+# nim c -d:danger -d:ssl --threads:on -o:c:/bin/downloadmanga.exe downloadmanga_poolconnection.nim
 import httpclient, strutils, uri, os, osproc
 import asyncdispatch, streams, parsexml, times, strformat
 import sugar, math, deques, options, tables, asyncfile
+import threadpool
 
 const zip7exe = "\"C:\\Program Files\\7-zip\\7z.exe\""
 
@@ -17,7 +20,7 @@ proc initPool(size = 16): Pool =
   let newsize = nextPowerOfTwo size
   result.available = initDeque[int](newsize)
   result.conns = newTable[int, AsyncHttpClient](newsize)
-  for i in 1 ..< newsize:
+  for i in 1 .. newsize:
     result.available.addFirst i
     result.conns[i] = newAsyncHttpClient()
 
@@ -83,7 +86,14 @@ proc download(pool: Pool, opt, chapnum, imgurl: string): Future[void] {.async.} 
   let (_, name, ext) = fname.splitFile
   if name.len > 2 and ext != "jpg":
     fname = name[0 .. 1].addFileExt ext
-  file = openAsync(chapnum / fname, fmWrite)
+  let dirn = chapnum / fname
+  try:
+    file = openAsync(dirn, fmWrite)
+  except:
+    echo fmt"id {idConn} failed to open {dirn}"
+    pool.returnConn idConn
+    return
+
   try:
     await file.write(await client.getContent opt & imgurl)
     echo fmt"downloaded {fname} with size {file.getFileSize}"
@@ -102,15 +112,18 @@ proc extractChapter(url: string): int =
   result = try: parseInt chap
            except: -1
 
+proc zip(parentdir: string; chap: int) =
+  let cmd = zip7exe & fmt""" a "{parentdir} - {$chap} [Mangastream].zip"  {$chap}"""
+  echo cmd
+  let res = execCmd(cmd)
+  if res == 0:
+    removeDir $chap
+
 proc zipall(parentdir: string, dirs: seq[int]) =
   for chap in dirs:
-    let cmd = zip7exe & fmt""" a "{parentdir} - {$chap} [Mangastream].zip"  {$chap}"""
-    echo cmd
-    let res = execCmd(cmd)
-    if res == 0:
-      removeDir $chap
+    parentdir.zip chap
 
-proc main {.async.} =
+proc main =
   if paramCount() < 1:
     quit "Specify the url"
   let
@@ -133,18 +146,24 @@ proc main {.async.} =
     futuredownloads = newseq[Future[void]]()
     page = MangaPage(nextlink: url)
     starttime = cpuTime()
+  echo page
   while true:
-    page = await client.getInfo(url, page.nextlink)
+    #page = await client.getInfo(url, page.nextlink)
+    page = waitFor client.getInfo(url, page.nextlink)
     echo page
-    let thischap = page.nextlink.extractChapter
+    let nextchap = page.nextlink.extractChapter
     futuredownloads.add pool.download(opt, $lastchap, page.imgurl)
-    if page.nextlink == "" or thischap == -1: #or thischap != currentChapter:
+    if page.nextlink == "" or nextchap == -1: #or thischap != currentChapter:
       break
-    elif thischap notin workedchaps:
-      workedchaps.add thischap
-    lastchap = thischap
-  await all(futuredownloads)
+    elif nextchap notin workedchaps:
+      workedchaps.add nextchap
+    lastchap = nextchap
+  #await all(futuredownloads)
+  waitFor all(futuredownloads)
   echo "ended after: ", cpuTime() - starttime
-  dirname.zipall workedchaps
+  #dirname.zipall workedchaps
+  for chap in workedchaps:
+    spawn(dirname.zip chap)
+  sync()
 
-waitFor main()
+main()
