@@ -2,7 +2,7 @@
 #http://rosettacode.org/wiki/Loops/Increment_loop_index_within_loop_body
 
 import strformat
-from strutils import join
+from strutils import join, insertSep
 from algorithm import reverse
 
 func isPrime(i: int): bool =
@@ -39,7 +39,7 @@ proc main =
   while n < limit:
     if i.isPrime:
       inc n
-      echo &"""n {n:>2} = {($i).distribute(3).join(","):>19}"""
+      echo &"""n {n:>2} = {($i).insertSep(sep = ','):>19}"""
       i.inc i
       continue
     inc i
