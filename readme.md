@@ -41,3 +41,8 @@ Additional information can be read [here](./front-end-karax/readme.md)
 ## poolclient
 This example shows on how to the pooled client together with its simple
 server implementation.
+
+## rosettacode
+This is rosettacode tasks collection implementations in Nim.
+Several copied from existing implementation but mainly a new implemented task
+for Nim in rosettacode.org
