@@ -61,11 +61,11 @@ proc moveTo(g: Game, room: Rooms) =
   if room == g.wumpus or room in g.pits:
     g.state = gsLose
     return
-  if room in g.map[g.player].next:
-    g.player = room
-    return
   if room in g.bats:
     g.movedBats
+    return
+  if room in g.map[g.player].next:
+    g.player = room
     return
 
 proc map: Maze =
