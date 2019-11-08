@@ -29,7 +29,7 @@ type
     pits: array[2, Rooms]
 
 proc mumpusMove(g: Game): bool =
-  template maybeWake: untyped = 1.0.rand >= 0.75
+  template maybeWake: untyped = 1.0.rand >= 0.25
   if maybeWake():
     g.wumpus = rand g.map[g.wumpus].next
     result = true
