@@ -31,7 +31,7 @@ type
 proc mumpusMove(g: Game): bool =
   template maybeWake: untyped = 1.0.rand >= 0.25
   if maybeWake():
-    g.wumpus = rand g.map[g.wumpus].next
+    g.wumpus = sample g.map[g.wumpus].next
     result = true
   else:
     result = false
