@@ -12,4 +12,4 @@ while true:
     port: Port
   discard server.recvFrom(data, length, address, port)
   echo address, " send ", data, " by ", $port
-  discard server.sendTo(address, port, "server echo back " & data)
+  server.sendTo(address, port, "server echo back " & data)

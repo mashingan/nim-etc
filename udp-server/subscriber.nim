@@ -8,7 +8,7 @@ var
 stdout.write "Insert your name: "
 var name = stdin.readLine
 
-discard socket.sendTo(serverAddress, serverPort, "subscribe " & name)
+socket.sendTo(serverAddress, serverPort, "subscribe " & name)
 while true:
   var
     data = ""

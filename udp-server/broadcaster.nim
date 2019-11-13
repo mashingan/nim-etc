@@ -25,11 +25,11 @@ var subscribers = initTable[string, Subscriber]()
 
 proc send(msg, towhom: string) =
   let subscriber = subscribers[towhom]
-  discard server.sendTo(subscriber.address, subscriber.port, msg)
+  server.sendTo(subscriber.address, subscriber.port, msg)
 
 proc broadcast(msg: string) =
   for s in subscribers.values:
-    discard server.sendTo(s.address, s.port, msg)
+    server.sendTo(s.address, s.port, msg)
 
 var newcommand = false
 proc command() {.thread.} =
