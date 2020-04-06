@@ -201,7 +201,7 @@ when defined(checkMemStat):
 
 when isMainModule:
   from os import sleep
-  from random import random, randomize
+  import random
   when defined(blocked):
     from terminal import getch
   import locks

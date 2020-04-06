@@ -10,23 +10,23 @@ const
 proc randomNeighbor(x: int): int =
   case x
   of 0:
-    rand([1, 10, 11])
+    sample([1, 10, 11])
   of 9:
-    rand([8, 18, 19])
+    sample([8, 18, 19])
   of 90:
-    rand([80, 81, 91])
+    sample([80, 81, 91])
   of 99:
-    rand([88, 89, 98])
+    sample([88, 89, 98])
   elif x > 0 and x < 9:   # top ceiling
-    rand [x-1, x+1, x+9, x+10, x+11]
+    sample [x-1, x+1, x+9, x+10, x+11]
   elif x > 90 and x < 99: # bottom floor
-    rand [x-11, x-10, x-9, x-1, x+1]
+    sample [x-11, x-10, x-9, x-1, x+1]
   elif x mod 10 == 0:     # left wall
-    rand([x-10, x-9, x+1, x+10, x+11])
+    sample([x-10, x-9, x+1, x+10, x+11])
   elif (x+1) mod 10 == 0: # right wall
-    rand([x-11, x-10, x-1, x+9, x+10])
+    sample([x-11, x-10, x-1, x+9, x+10])
   else: # center
-    rand([x-11, x-10, x-9, x-1, x+1, x+9, x+10, x+11])
+    sample([x-11, x-10, x-9, x-1, x+1, x+9, x+10, x+11])
 
 proc neighbor(s: seq[int]): seq[int] =
   result = s
@@ -61,7 +61,8 @@ proc main =
   randomize()
   var
     s = block:
-      var x = lc[x | (x <- 0 .. 99), int]
+      var x = collect(newSeqOfCap(100)):
+        for i in 0..99: i
       template shuffler: int = rand(1 .. x.len-1)
       for i in 1 .. x.len-1:
         x[i].swap x[shuffler()]

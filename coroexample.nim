@@ -4,7 +4,7 @@
 import coro
 from os import sleep
 from times import cpuTime
-from random import random, randomize
+import random
 
 type
   State = enum

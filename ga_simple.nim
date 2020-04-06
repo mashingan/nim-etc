@@ -22,7 +22,7 @@ proc asSolution(s: string): Solution =
 
 proc fitnessOf(sol: Solution, indiv: var Individual): int =
   for gene in indiv.genes.zip sol:
-    if gene.a == gene.b: inc result
+    if gene[0] == gene[1]: inc result
 
   if indiv.genes.len < sol.len:
     for i in indiv.genes.len ..< sol.len:
@@ -55,8 +55,8 @@ proc tournamentSelection(pops: Population, sol: Solution): Individual =
 proc crossover(ida, idb: Individual): Individual =
   result.genes = newseq[byte](ida.genes.len)
   for i, genes in ida.genes.zip idb.genes:
-    result.genes[i] = if 1.0.rand <= uniformRate: genes.a
-                      else: genes.b
+    result.genes[i] = if 1.0.rand <= uniformRate: genes[0]
+                      else: genes[1]
 
 proc evolve(pops: var Population, sol: Solution) =
   var offset = 0
