@@ -8,7 +8,7 @@ type
   WriterUnit = (float, string)
   WriterBind = proc(a: WriterUnit): WriterUnit
 
-proc bindWith(f: (x: float) -> float; log: string): WriterBind =
+proc bindWith(f: float -> float; log: string): WriterBind =
   result = (a: WriterUnit) => (f(a[0]), a[1] & log)
 
 func doneWith(x: int): WriterUnit =
