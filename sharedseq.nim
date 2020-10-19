@@ -231,9 +231,9 @@ when isMainModule:
   proc notInQueue(c: Customer): bool =
     not c.inQueue
 
-  template servingAction(num: int): typed =
+  template servingAction(num: int) =
     echo "(b) serving customer ", num
-    sleep random(cuttingTime)
+    sleep rand(cuttingTime)
     inc servedCustomers
     echo "(c) customer ", num, " finish cutting hair"
 
@@ -295,7 +295,7 @@ when isMainModule:
     customers[i-1].createThread serving, newCustomer(i)
 
     # to make it the customer come at random time when barber working
-    sleep random(cuttingTime div 2)
+    sleep rand(cuttingTime div 2)
 
   joinThreads(customers)
   echo "Total served customers is ", servedCustomers
