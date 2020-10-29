@@ -8,10 +8,17 @@ import strutils as sutl
 import types
 
 type Validator = proc(field: kstring): proc()
-proc loginField(desc, field, class: kstring, handle: Validator, `type` = "text"): VNode =
+type EmptyCb = proc()
+proc loginField(desc, field, class: kstring, handle: Validator,
+  `type` = "text", keypress: EmptyCb = nil): VNode =
   result = buildHtml tdiv:
     label(`for` = field): text desc
-    input(class = class, id = field, `type`=`type`, oninput = handle(field))
+    if keypress == nil:
+      input(class = class, id = field, `type`=`type`,
+        oninput = handle(field))
+    else:
+      input(class = class, id = field, `type`=`type`,
+        oninput = handle(field), onkeyupenter=keypress)
 
 proc validateNotEmpty(field: kstring): proc() =
   result = proc() =
@@ -104,6 +111,17 @@ proc registerView: VNode =
       #loginInfo = ($response).parseJson.to LoginInfo
       echo loginMessage
 
+  template registerBody: untyped =
+    let
+      passnode = document.getElementById(passreg)
+      unamenode = document.getElementById(userreg)
+    register = false
+    #echo passnode
+    if passnode.value != "" and unamenode.value != "":
+      ajaxPost(cstring"/register",
+        [(cstring"content-type", cstring"application/json")],
+        $(%* {"username": $unamenode.value, "password": $passnode.value }),
+        registerCb)
   let userreg = kstring"ureg"
   let passreg = kstring"preg"
   result = buildHtml(tdiv()):
@@ -115,23 +133,15 @@ proc registerView: VNode =
       input(class = kstring"password", id = passreg, `type`=kstring"password")
     tdiv:
       label(`for` = kstring"inforeg"): text "Email user"
-      input(class = kstring"email", id = kstring"inforeg", `type`=kstring"email")
+      input(class = kstring"email", id = kstring"inforeg", `type`=kstring"email"):
+        proc onkeyupenter() =
+          echo "we can reach this, via email enter, nice"
+          registerBody()
     button:
       text "Register"
       proc onclick() =
-        let
-          #passnode = getVNodeById(passreg)
-          #unamenode = getVNodeById(userreg)
-          passnode = document.getElementById(passreg)
-          unamenode = document.getElementById(userreg)
-        register = false
-        {.emit: "console.log(`passnode`);".}
-        if passnode.value != "" or unamenode.value != "":
-          echo "we can reach this, nice"
-          ajaxPost(cstring"/register",
-            [(cstring"content-type", cstring"application/json")],
-            $(%* {"username": $unamenode.value, "password": $passnode.value }),
-            registerCb)
+        echo "we can reach this, nice"
+        registerBody()
 
 
 proc loginDialog(data: RouterData): VNode =
@@ -154,23 +164,26 @@ proc loginDialog(data: RouterData): VNode =
         revokeAuthentication()
         ), 1000 * 60)
 
+  template loggingInBody: untyped =
+    let
+      uname = document.getElementById(username)
+      pass = document.getElementById(password)
+    loggingIn = true
+    ajaxPost(cstring"/login",
+      [(cstring"content-type", cstring"application/json")],
+      $(%* {"username": $uname.value, "password": $pass.value }),
+      loginCb)
+
   var loginpage = buildHtml tdiv:
     if not authenticated:
       p: text loginMessage
     loginField("Username", username, "input", validateNotEmpty)
-    loginFIeld("Password", password, "password", validateNotEmpty, "password")
+    loginFIeld("Password", password, "password", validateNotEmpty,
+      `type` = "password", keypress = (proc() = loggingInBody()))
     span:
       button(disabled = disableOnError(), style = style((margin, kstring"5px"))):
         text "Login"
-        proc onclick() =
-          let
-            uname = getVNodeById(username).text
-            pass = getVNodeById(password).text
-          loggingIn = true
-          ajaxPost(cstring"/login",
-            [(cstring"content-type", cstring"application/json")],
-            $(%* {"username": $uname, "password": $pass }),
-            loginCb)
+        proc onclick() = loggingInBody()
       button(style = style((margin, kstring"5px"))):
         text "Register"
         proc onclick() = register = true

@@ -6,10 +6,10 @@ import types
 
 settings:
   port = Port 3000
-  staticDir = "./nimcache"
+  staticDir = "./pkgs"
 
 var
-  users = newStringTable("mashingan", "mashingan", modeCaseSensitive)
+  users = newStringTable("dummy", "dummy", modeCaseSensitive)
   session = newTable[int, User]()
   logins = newTable[string, bool]()
   counts = 0
@@ -19,20 +19,10 @@ var
     ("information", "#/information")].mapIt(
       Menu(label: it[0], href: it[1]))
 
-
 routes:
   get "/managing":
-    const loginpage = staticRead "nimcache/login_page.html"
+    const loginpage = staticRead "pkgs/app.html"
     resp loginpage
-
-  get "/login_page.js":
-    when defined(release):
-      const logjs = staticRead "nimcache/login_page.js"
-      resp logjs
-    else:
-      let logjs = open "nimcache/login_page.js"
-      resp logjs.readAll
-
 
   put "/logout":
     var userjson = try: request.body.parseJson
