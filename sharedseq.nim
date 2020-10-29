@@ -15,6 +15,9 @@
 ## Additionally, if we want to observe the memory, supply the additional
 ## compile info ``-d:checkMemStat``. The statistics are observed
 ## when the barber finished serving a customer
+##
+## With the Nim v1.4.0, we can compile
+## $ nim c -r -d:danger --seqsv2:on --exceptions:goto --gc:arc --threads:on -d:checkMemStat -d:blocked sharedseq.nim
 
 import locks
 #TODO: For ref type element deletion
@@ -221,6 +224,7 @@ when isMainModule:
     servedCustomers: int
     customers: array[totalCustomer, Thread[Customer]]
     seatAvailable = newColl[int]()
+    totalCuttingTime = 0
 
   proc newCustomer(id: int): Customer =
     new result
@@ -233,7 +237,9 @@ when isMainModule:
 
   template servingAction(num: int) =
     echo "(b) serving customer ", num
-    sleep rand(cuttingTime)
+    let barberCuttingTime = rand cuttingTime
+    sleep barberCuttingTime
+    discard totalCuttingTime.atomicInc barberCuttingTime
     inc servedCustomers
     echo "(c) customer ", num, " finish cutting hair"
 
@@ -290,15 +296,21 @@ when isMainModule:
   when defined(blocked):
     stdout.write "Press a key to start"
     discard getch()
+  var totalwait = 0
   for i in 1..totalCustomer:
     echo "loop in: ", i
     customers[i-1].createThread serving, newCustomer(i)
 
     # to make it the customer come at random time when barber working
-    sleep rand(cuttingTime div 2)
+
+    let cutting = rand(cuttingTime div 2)
+    sleep cutting
+    discard totalwait.atomicInc cutting
 
   joinThreads(customers)
   echo "Total served customers is ", servedCustomers
+  echo "Total waits before next customer: ", totalwait
+  echo "Total barber operations time: ", totalCuttingTime
 
   when defined(checkMemStat):
     echo "Last time before freeing ", getCollSize seatAvailable
