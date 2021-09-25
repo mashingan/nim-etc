@@ -1,6 +1,6 @@
 # simulated annealing traveling salesman
-# https://rosettacode.org/wiki/Simulated_Annealing
-import math, random, sugar, strformat, os
+# https://rosettacode.org/wiki/Simulated_annealing
+import math, random, sugar, strformat
 from times import cpuTime
 
 const
@@ -30,10 +30,10 @@ proc randomNeighbor(x: int): int =
 
 proc neighbor(s: seq[int]): seq[int] =
   result = s
-  var city = rand s
+  var city = sample s
   var cityNeighbor = city.randomNeighbor
   while cityNeighbor == 0 or city == 0:
-    city = rand s
+    city = sample s
     cityNeighbor = city.randomNeighbor
   result[s.find city].swap result[s.find cityNeighbor]
 

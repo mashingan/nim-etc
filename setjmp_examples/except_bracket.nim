@@ -18,7 +18,7 @@ proc first =
 
   of 1:
     echo "calling second"
-    second()
+    #second()
     echo "second succeeded"
 
   else:
@@ -30,7 +30,8 @@ proc first =
 
 proc second =
   echo "entering second"
-  exceptionType = 3
+  #exceptionType = 3
+  exceptionType = 1
   exceptionEnv.longjmp exceptionType
   echo "leaving second"
 
