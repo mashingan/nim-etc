@@ -13,7 +13,7 @@ proc themain(darkenedTo: float32, input: string, output = "") =
       b: float32(thergba.b) / 255.0,
       a: float32(thergba.a) / 255.0,
     )
-    let newc = color.darken 0.2
+    let newc = color.darken darkenedTo
     colordata = rgbx(uint8(newc.r * 255.0), uint8(newc.g * 255.0),
                      uint8(newc.b * 255.0), uint8(newc.a * 255.0))
     var fname = output

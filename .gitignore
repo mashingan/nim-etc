@@ -10,6 +10,7 @@
 # vim swap and backup files
 *.un~
 *.swap
+*.swp
 
 # windows executable
 *.exe
