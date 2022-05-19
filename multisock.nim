@@ -12,31 +12,28 @@ template inspect(n: untyped) =
   dump `n`.repr
   echo "========="
 
+template removeAndAssign(n: untyped) =
+  var nn = `n`
+  removeAwaitAsyncCheck nn
+  `n` = nn
+
 proc removeAwaitAsyncCheck(n: var NimNode) =
   if n.len < 1: return
   case n.kind
   of nnkEmpty: discard
   of nnkVarSection, nnkLetSection:
     for i, section in n:
-      var nn = n[i]
-      removeAwaitAsyncCheck nn
-      n[i] = nn
+      removeAndAssign n[i]
   of nnkCommand:
     if n[0].kind != nnkDotExpr and $n[0] in ["await", "asyncCheck"]:
       n = newStmtList(n[1..^1])
   of nnkAsgn:
-    var nn = n[1]
-    removeAwaitAsyncCheck nn
-    n[1] = nn
+    removeAndAssign n[1]
   of nnkOfBranch, nnkElse:
-    var nn = n[^1]
-    removeAwaitAsyncCheck nn
-    n[^1] = nn
+    removeAndAssign n[^1]
   else:
     for i in 0..<n.len:
-      var child = n[i]
-      removeAwaitAsyncCheck child
-      n[i] = child
+      removeAndAssign n[i]
 
 macro multisock*(prc: untyped): untyped =
   ## multisock macro operates on async proc definition
