@@ -1,5 +1,5 @@
 # macro example for creating a function which both operates on Socket
-# and AsyncSocket
+# and AsyncSocket. multisock pragma and async pragma cannot be mixed together
 
 import macros, asyncnet, asyncdispatch, strutils, sugar, net
 
@@ -45,9 +45,12 @@ macro multisock*(prc: untyped): untyped =
   ## overload by removing `await` and `asyncCheck`
   let prcsync = prc.copy
   let syncparam = prcsync[3]
-  let socksync = syncparam[1]
-  syncparam[0] = syncparam[0][1]
-  socksync[1] = ident "Socket"
+  if syncparam.kind != nnkEmpty:
+    syncparam[0] = syncparam[0][1]
+    for i in 1..<syncparam.len:
+      let socksync = syncparam[i]
+      if $socksync[1] == "AsyncSocket":
+        socksync[1] = ident "Socket"
   var prcbody = prcsync[^1]
   prcbody.removeAwaitAsyncCheck
   if prc[^3].kind != nnkEmpty:
@@ -88,3 +91,17 @@ proc casestry(sock: AsyncSocket): Future[int] {.multisock.} =
 
 proc main(s: AsyncSocket): Future[void] {.multisock.} =
   discard
+
+proc emptyArg: Future[void] {.multisock.} = discard
+
+type
+  Dummy = object
+
+template dummy1() {.pragma.}
+template dummy2(key: string) {.pragma.}
+
+proc randomAsyncSocketArgpos(arg1: int, arg2: float,
+  sock: AsyncSocket): Future[Dummy] {.multisock, inline, dummy1, dummy2("dummy2").} =
+  asyncCheck sock.send("dum-dum-dummy")
+  discard await sock.casestry
+  result = Dummy()
