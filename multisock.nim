@@ -184,3 +184,48 @@ proc getConn(o: OOMulti[AsyncSocket]): Future[(int, ObjectMulti[AsyncSocket])] {
 
 let o = ObjectMulti[AsyncSocket](sock: newAsyncSocket())
 discard o
+
+## This part of example is to illustrate the proc that defined with
+## multisock pragma operates on both AsyncSocket and Socket even though
+## the implementation is defined only for async.
+
+import std/[threadpool, asynchttpserver, os]
+var
+  count = 0
+  ready = false
+
+proc mainserver =
+  # simple server that responds with "Hello world"
+  var server = newAsyncHttpServer()
+  proc cb(req: Request) {.async.} =
+    echo (req.reqMethod, req.url, req.headers)
+    let headers = {"Content-Type": "text/plain; charset=utf-8"}
+    asyncCheck req.respond(Http200, "Hello world", newHttpHeaders headers)
+
+  server.listen(Port 3000)
+  let port = server.getPort
+  echo "server listening on port: ", $port.uint16
+  ready = true
+  while count < 2:
+    waitfor server.acceptRequest(cb)
+
+spawn mainserver()
+
+# our simple get request
+const bodyreq = "GET / HTTP/1.1\r\LHost: 127.0.0.1:3000\r\L\r\L"
+
+proc req2server(sock: AsyncSocket): Future[void] {.multisock.} =
+  inc count
+  asyncCheck sock.connect("127.0.0.1", Port 3000)
+  asyncCheck sock.send(bodyreq)
+  dump(await sock.recvLine) # we're only reading the response code
+  close sock
+
+while not ready:
+  # we need this part to wait the server is ready for listening
+  sleep 500
+
+echo "ready to make request"
+waitfor req2server(newAsyncSocket())
+req2server(newSocket())
+sync()
