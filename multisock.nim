@@ -1,7 +1,7 @@
 # macro example for creating a function which both operates on Socket
-# and AsyncSocket. multisock pragma and async pragma cannot be mixed together
+# and AsyncSocket
 
-import macros, asyncnet, asyncdispatch, strutils, sugar, net
+import macros, asyncnet, asyncdispatch, strutils, sugar, net, tables
 
 {.hint[XDeclaredButNotUsed]: off.}
 
@@ -12,10 +12,27 @@ template inspect(n: untyped) =
   dump `n`.repr
   echo "========="
 
+template nodeIsAsyncSocket(n: NimNode): bool =
+  n.kind == nnkIdent and $n == "AsyncSocket"
+
+proc recReplaceForBracket(n: var NimNode, newident = "TheSocket") =
+  if n.nodeIsAsyncSocket:
+    n = ident newident
+  elif n.kind == nnkBracketExpr:
+    for i in 1 ..< n.len:
+      if n[i].kind == nnkEmpty: continue
+      if n[i].nodeIsAsyncSocket:
+        n[i] = ident newident
+      else:
+        var nn = n[i]
+        nn.recReplaceForBracket newident
+        n[i] = nn
+
 template removeAndAssign(n: untyped) =
   var nn = `n`
   removeAwaitAsyncCheck nn
   `n` = nn
+
 
 proc removeAwaitAsyncCheck(n: var NimNode) =
   if n.len < 1: return
@@ -25,40 +42,86 @@ proc removeAwaitAsyncCheck(n: var NimNode) =
     for i, section in n:
       removeAndAssign n[i]
   of nnkCommand:
-    if n[0].kind != nnkDotExpr and $n[0] in ["await", "asyncCheck"]:
+    if n[0].kind notin [nnkCall, nnkDotExpr, nnkEmpty] and
+       $n[0] in ["await", "asyncCheck"]:
       n = newStmtList(n[1..^1])
   of nnkAsgn:
     removeAndAssign n[1]
   of nnkOfBranch, nnkElse:
     removeAndAssign n[^1]
+  of nnkBracketExpr:
+    n.recReplaceForBracket "Socket"
   else:
     for i in 0..<n.len:
       removeAndAssign n[i]
 
-macro multisock*(prc: untyped): untyped =
-  ## multisock macro operates on async proc definition
-  ## with first param is AsyncSocket and returns Future
-  ## which then creating the sync version of the function
-  ## overload by removing `await` and `asyncCheck`
+
+type MultiSock* = AsyncSocket | Socket
+
+proc multiproc(prc: NimNode): NimNode =
   let prcsync = prc.copy
   let syncparam = prcsync[3]
   if syncparam.kind != nnkEmpty:
     syncparam[0] = syncparam[0][1]
+    for i in 0..<syncparam[0].len:
+      var sn = syncparam[0][i]
+      sn.recReplaceForBracket "Socket"
+      syncparam[0][i] = sn
     for i in 1..<syncparam.len:
       let socksync = syncparam[i]
-      if $socksync[1] == "AsyncSocket":
-        socksync[1] = ident "Socket"
+      var ss1 = socksync[1]
+      ss1.recReplaceForBracket "Socket"
+      socksync[1] = ss1
   var prcbody = prcsync[^1]
   prcbody.removeAwaitAsyncCheck
   if prc[^3].kind != nnkEmpty:
     prc[^3].add(ident "async")
   else:
     prc[^3] = quote do: {.async.}
-  inspect prcsync
-  inspect prc
   result = quote do:
     `prcsync`
     `prc`
+
+proc multitype(ty: NimNode): NimNode =
+  let genParamIsEmpty = ty[1].kind == nnkEmpty
+  if not genParamIsEmpty and ty[1].kind == nnkGenericParams:
+    ty[1].add quote do:
+      TheSocket: AsyncSocket|Socket
+  else:
+    ty[1] = nnkGenericParams.newTree(newIdentDefs(ident "TheSocket",
+      nnkInfix.newTree(ident "|", ident "AsyncSocket", ident "Socket")))
+    discard
+  result = ty
+  if ty[^1].kind != nnkObjectTy and ty[^1].kind == nnkEmpty:
+    return
+
+  var obj = ty[2]
+  if ty[2].kind == nnkRefTy:
+    obj = obj[0]
+  for i in 0 ..< obj[^1].len:
+    var identdef = obj[2][i]
+    if identdef.kind != nnkIdentDefs: continue
+    if identdef[1].kind == nnkEmpty: continue
+    var obj = identdef[1]
+    if obj.kind == nnkRefTy: obj = obj[0]
+    obj.recReplaceForBracket
+    if identdef[1].kind == nnkRefTy:
+      identdef[1][0] = obj
+    else:
+      identdef[1] = obj
+
+macro multisock*(def: untyped): untyped =
+  ## multisock macro operates on async proc definition
+  ## with first param is AsyncSocket and returns Future
+  ## which then creating the sync version of the function
+  ## overload by removing `await` and `asyncCheck`
+  inspect def
+  if def.kind == nnkProcDef:
+    result = def.multiproc
+  else:
+    let defg = def.multitype
+    result = defg
+  inspect result
 
 
 proc myp(sock: AsyncSocket): Future[int] {.multisock.} =
@@ -102,3 +165,22 @@ proc randomAsyncSocketArgpos(arg1: int, arg2: float,
   asyncCheck sock.send("dum-dum-dummy")
   discard await sock.casestry
   result = Dummy()
+
+type
+  ObjectMulti* {.multisock, dummy1.} = object
+    hehe: int
+    sock: AsyncSocket
+
+  OOmulti {.multisock.} = object
+    ob: ObjectMulti[AsyncSocket]
+    connections: TableRef[int, ObjectMulti[AsyncSocket]]
+
+  OoRef {.multisock.} = ref object
+    s: AsyncSocket
+    OOMulti: ref OOmulti[AsyncSocket]
+
+proc getConn(o: OOMulti[AsyncSocket]): Future[(int, ObjectMulti[AsyncSocket])] {.multisock.} =
+  var o: ObjectMulti[AsyncSocket]
+
+let o = ObjectMulti[AsyncSocket](sock: newAsyncSocket())
+discard o
