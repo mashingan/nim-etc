@@ -48,8 +48,8 @@ proc mutate(ind: var Individual) =
 
 proc tournamentSelection(pops: Population, sol: Solution): Individual =
   var tournament = newseq[Individual](tournamentSize)
-  for _ in 0 ..< tournamentSize:
-    tournament.add pops[rand pops.high]
+  for i in 0 ..< tournamentSize:
+    tournament[i] = pops[rand pops.high]
   result = tournament.fittest sol
 
 proc crossover(ida, idb: Individual): Individual =
