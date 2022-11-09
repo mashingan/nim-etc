@@ -1,6 +1,6 @@
 # implementation from original article which use java
 # http://www.theprojectspot.com/tutorial-post/creating-a-genetic-algorithm-for-beginners/3
-import math, random, strutils, sequtils, strformat
+import std/[random, strutils, sequtils, strformat]
 
 const
   uniformRate = 0.5
@@ -49,7 +49,7 @@ proc mutate(ind: var Individual) =
 proc tournamentSelection(pops: Population, sol: Solution): Individual =
   var tournament = newseq[Individual](tournamentSize)
   for _ in 0 ..< tournamentSize:
-    tournament.add pops[rand pops.len]
+    tournament.add pops[rand pops.high]
   result = tournament.fittest sol
 
 proc crossover(ida, idb: Individual): Individual =
