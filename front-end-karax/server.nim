@@ -14,10 +14,9 @@ var
   logins = newTable[string, bool]()
   counts = 0
   #menu = @["profil", "statistics", "information"]
-  menu = [("profile", "#/profile"),
-    ("statistics", "#/statistics"),
-    ("information", "#/information")].mapIt(
-      Menu(label: it[0], href: it[1]))
+  menu = ["profile", "statistics", "information"].mapIt(
+      Menu(label: it, href: &"#/{it}")
+  )
 
 routes:
   get "/managing":

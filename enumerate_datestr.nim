@@ -2,7 +2,7 @@
 # Initial problem was asked in the forum https://forum.nim-lang.org/t/3005
 # and this is the result of solution.
 
-import times, strformat
+import std/[times, strformat]
 
 template iterdays(ds1, ds2: string, op: untyped): untyped =
   var
@@ -12,10 +12,10 @@ template iterdays(ds1, ds2: string, op: untyped): untyped =
   var interval: TimeInterval
   # yield day-by-day
   if d1.monthday != d2.monthday:
-    interval = initInterval(hours=24)
+    interval = initTimeInterval(hours=24)
   # yield month-by-month
   else:
-    interval = initInterval(months=1)
+    interval = initTimeInterval(months=1)
 
   while `op`(d1.toTime, d2.toTime):
     yield d1
