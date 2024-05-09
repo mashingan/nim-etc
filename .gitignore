@@ -23,3 +23,5 @@ nim.cfg
 
 # built folder if available
 build/
+
+*pkgs
